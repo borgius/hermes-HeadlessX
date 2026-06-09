@@ -119,3 +119,28 @@ def test_extract_honors_website_policy(monkeypatch):
     assert result[0]["error"] == "Blocked by policy"
     assert result[0]["blocked_by_policy"]["rule"] == "deny"
     post.assert_not_called()
+
+
+def test_extract_reports_unreachable_runtime(monkeypatch):
+    import httpx
+
+    request = httpx.Request(
+        "POST",
+        "http://headlessx.test/api/operators/website/scrape/content",
+    )
+
+    def refuse(*args, **kwargs):
+        error = ConnectionRefusedError(111, "Connection refused")
+        raise httpx.ConnectError("Connection refused", request=request) from error
+
+    monkeypatch.setattr("httpx.post", refuse)
+
+    result = provider.HeadlessXWebSearchProvider().extract(
+        ["https://example.com"]
+    )
+
+    assert result[0]["title"] == ""
+    assert "HeadlessX is not reachable at http://headlessx.test/" in (
+        result[0]["error"]
+    )
+    assert "`headlessx start`" in result[0]["error"]

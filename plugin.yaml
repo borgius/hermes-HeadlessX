@@ -1,6 +1,6 @@
 manifest_version: 1
 name: hermes-HeadlessX
-version: 1.0.0
+version: 1.0.1
 description: "HeadlessX content extraction backend for Hermes web.extract_backend."
 author: borgius
 kind: backend

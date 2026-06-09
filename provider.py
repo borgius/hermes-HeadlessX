@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import socket
 from typing import Any, Dict, List
 
 from agent.web_search_provider import WebSearchProvider
@@ -66,6 +67,22 @@ def _error_message(response: Any) -> str:
     return f"HTTP {response.status_code}"
 
 
+def _connection_error_message(endpoint: str, exc: Exception) -> str:
+    cause: BaseException | None = exc
+    while cause is not None:
+        if isinstance(cause, ConnectionRefusedError):
+            return (
+                f"HeadlessX is not reachable at {endpoint}. Start the self-hosted "
+                "runtime with `headlessx start`, or set HEADLESSX_API_URL to a "
+                "running HeadlessX API."
+            )
+        cause = cause.__cause__ or cause.__context__
+
+    if isinstance(exc, (socket.gaierror, TimeoutError)):
+        return f"HeadlessX is not reachable at {endpoint}: {exc}"
+    return f"HeadlessX extraction failed: {exc}"
+
+
 class HeadlessXWebSearchProvider(WebSearchProvider):
     """Extract web pages through a self-hosted HeadlessX API."""
 
@@ -101,17 +118,20 @@ class HeadlessXWebSearchProvider(WebSearchProvider):
             options["waitForSelector"] = wait_for_selector
 
         endpoint = f"{_api_url().rstrip('/')}{_CONTENT_PATH}"
-        response = httpx.post(
-            endpoint,
-            json={"url": url, "options": options},
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "User-Agent": "hermes-HeadlessX/1.0",
-                "x-api-key": _api_key(),
-            },
-            timeout=_timeout_seconds(),
-        )
+        try:
+            response = httpx.post(
+                endpoint,
+                json={"url": url, "options": options},
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "User-Agent": "hermes-HeadlessX/1.0",
+                    "x-api-key": _api_key(),
+                },
+                timeout=_timeout_seconds(),
+            )
+        except httpx.RequestError as exc:
+            raise RuntimeError(_connection_error_message(endpoint, exc)) from exc
         if not response.is_success:
             raise RuntimeError(
                 f"HeadlessX returned HTTP {response.status_code}: "
@@ -206,7 +226,9 @@ class HeadlessXWebSearchProvider(WebSearchProvider):
                         "title": "",
                         "content": "",
                         "raw_content": "",
-                        "error": f"HeadlessX extraction failed: {exc}",
+                        "error": str(exc)
+                        if str(exc).startswith("HeadlessX")
+                        else f"HeadlessX extraction failed: {exc}",
                     }
                 )
 

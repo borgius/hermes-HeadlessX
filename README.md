@@ -13,6 +13,19 @@ keep `web.search_backend` configured separately.
 - A running HeadlessX instance
 - A HeadlessX API key created in the dashboard
 
+The plugin is an API client; it does not launch HeadlessX itself. For a local
+self-hosted runtime, install and initialize the official CLI:
+
+```bash
+npm install -g @headlessx-cli/core
+headlessx init --mode self-host --yes
+headlessx status
+```
+
+After initialization, use `headlessx start`, `headlessx stop`, and
+`headlessx restart` to manage the service. A connection-refused error means
+the API configured by `HEADLESSX_API_URL` is not running.
+
 ## Install
 
 ```bash

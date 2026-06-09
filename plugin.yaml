@@ -1,0 +1,17 @@
+manifest_version: 1
+name: hermes-HeadlessX
+version: 1.0.0
+description: "HeadlessX content extraction backend for Hermes web.extract_backend."
+author: borgius
+kind: backend
+provides_web_providers:
+  - headlessx
+requires_env:
+  - name: HEADLESSX_API_URL
+    description: "HeadlessX API origin, for example http://127.0.0.1:38473"
+    url: "https://github.com/saifyxpro/HeadlessX"
+    secret: false
+  - name: HEADLESSX_API_KEY
+    description: "API key created in the HeadlessX dashboard"
+    url: "https://headlessx.saify.me/docs/api-reference/overview"
+    secret: true
